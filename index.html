@@ -80,7 +80,6 @@
             <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-6">Hours to Proof Dough (0 Equals Ready to Use/No Proof time)</p>
             <div id="proofingOverrides" class="grid grid-cols-5 gap-4"></div>
             
-            <!-- UPDATED BUTTON TEXT ONLY -->
             <button onclick="saveProofingDefaults()" 
                     class="mt-6 w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-3xl font-medium flex items-center justify-center gap-2 text-sm transition">
                 <i class="fa-solid fa-save"></i> OVERRIDE PROOFING TIMES
@@ -161,7 +160,9 @@
             {size:"6",label:"6\""}
         ];
 
-        function ceilToQuarter(val) { return Math.ceil((val||0)*4)/4; }
+        function roundToTenth(val) {
+            return Math.round((val || 0) * 10) / 10;
+        }
 
         function subtractHours(timeStr, hours) {
             if (hours === 0) return "READY";
@@ -369,10 +370,10 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-x-10 gap-y-4 text-base">
-                        <div class="flex justify-between"><span class="text-zinc-500 dark:text-zinc-400">13"</span><span class="font-medium">${item.t13.toFixed(2)}</span></div>
-                        <div class="flex justify-between"><span class="text-zinc-500 dark:text-zinc-400">11"</span><span class="font-medium">${item.t11.toFixed(2)}</span></div>
-                        <div class="flex justify-between"><span class="text-zinc-500 dark:text-zinc-400">9"</span><span class="font-medium">${item.t9.toFixed(2)}</span></div>
-                        <div class="flex justify-between"><span class="text-zinc-500 dark:text-zinc-400">6"</span><span class="font-medium">${item.t6.toFixed(2)}</span></div>
+                        <div class="flex justify-between"><span class="text-zinc-500 dark:text-zinc-400">13"</span><span class="font-medium">${item.t13.toFixed(1)}</span></div>
+                        <div class="flex justify-between"><span class="text-zinc-500 dark:text-zinc-400">11"</span><span class="font-medium">${item.t11.toFixed(1)}</span></div>
+                        <div class="flex justify-between"><span class="text-zinc-500 dark:text-zinc-400">9"</span><span class="font-medium">${item.t9.toFixed(1)}</span></div>
+                        <div class="flex justify-between"><span class="text-zinc-500 dark:text-zinc-400">6"</span><span class="font-medium">${item.t6.toFixed(1)}</span></div>
                     </div>
                 `;
                 container.appendChild(card);
@@ -392,17 +393,17 @@
             periods.forEach(function(period) {
                 const sales = parseFloat(document.getElementById(period.id).value)||0;
                 totalSales += sales;
-                const t13 = ceilToQuarter(sales/1000*rates[13]);
-                const t11 = ceilToQuarter(sales/1000*rates[11]);
-                const t9  = ceilToQuarter(sales/1000*rates[9]);
-                const t6  = ceilToQuarter(sales/1000*rates[6]);
+                const t13 = roundToTenth(sales/1000*rates[13]);
+                const t11 = roundToTenth(sales/1000*rates[11]);
+                const t9  = roundToTenth(sales/1000*rates[9]);
+                const t6  = roundToTenth(sales/1000*rates[6]);
                 const periodTotal = t13 + t11 + t9 + t6;
 
                 totals[13] += t13; totals[11] += t11; totals[9] += t9; totals[6] += t6;
 
                 mobileData.push({name:period.name, pdfLabel:period.pdfLabel, sales, t13, t11, t9, t6});
 
-                tableHTML += `<tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800"><td class="py-5 px-8 font-medium">\( {period.name}</td><td class="py-5 px-6 text-right font-semibold">£ \){sales.toLocaleString("en-GB")}</td><td class="py-5 px-6 text-center">\( {t13.toFixed(2)}</td><td class="py-5 px-6 text-center"> \){t11.toFixed(2)}</td><td class="py-5 px-6 text-center">\( {t9.toFixed(2)}</td><td class="py-5 px-6 text-center"> \){t6.toFixed(2)}</td><td class="py-5 px-8 text-right font-semibold">${periodTotal.toFixed(2)}</td></tr>`;
+                tableHTML += `<tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800"><td class="py-5 px-8 font-medium">\( {period.name}</td><td class="py-5 px-6 text-right font-semibold">£ \){sales.toLocaleString("en-GB")}</td><td class="py-5 px-6 text-center">\( {t13.toFixed(1)}</td><td class="py-5 px-6 text-center"> \){t11.toFixed(1)}</td><td class="py-5 px-6 text-center">\( {t9.toFixed(1)}</td><td class="py-5 px-6 text-center"> \){t6.toFixed(1)}</td><td class="py-5 px-8 text-right font-semibold">${periodTotal.toFixed(1)}</td></tr>`;
             });
 
             document.getElementById("tableBody").innerHTML = tableHTML;
@@ -411,7 +412,7 @@
             document.getElementById("totalSalesValue").textContent = `£${totalSales.toLocaleString("en-GB")}`;
             ["13","11","9","6"].forEach(function(s) {
                 const el = document.getElementById(`total${s}`);
-                if (el) el.textContent = totals[s].toFixed(2);
+                if (el) el.textContent = totals[s].toFixed(1);
             });
 
             window.lastCalculation = {mobileData, totalSales};
@@ -447,9 +448,12 @@
                         if (leftoverReady[size] > 0) {
                             const use = Math.min(need, leftoverReady[size]);
                             if (use > 0) {
-                                lines.push(use + ' Tray' + (use === 1 ? '' : 's') + ' Pre-Proofed');
+                                // ONLY CHANGE HERE – exactly 2 decimal places for Pre-Proofed
+                                const preQty = Number(use.toFixed(2));
+                                lines.push(preQty + ' Tray' + (preQty === 1 ? '' : 's') + ' Pre-Proofed');
                                 need -= use;
                                 leftoverReady[size] -= use;
+                                leftoverReady[size] = Number(leftoverReady[size].toFixed(2)); // prevent future floating-point mess
                             }
                         }
 
@@ -496,7 +500,7 @@
                                 }
                             }
 
-                            leftoverReady[size] = proofTrays - need;
+                            leftoverReady[size] = Number((proofTrays - need).toFixed(2));
 
                             if (proofRemaining > 0) {
                                 lines.push("OUT OF DOUGH");
@@ -644,7 +648,7 @@
                         doc.setFont("helvetica","normal"); doc.setFontSize(11);
                         doc.text(sz+"\"", sizeX, y);
 
-                        const projStr = projected.toFixed(2);
+                        const projStr = projected.toFixed(1);
                         doc.setFont("helvetica","bold");
                         doc.text(projStr, projX - doc.getTextWidth(projStr), y);
 
